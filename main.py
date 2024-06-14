@@ -1,11 +1,36 @@
+import requests
 import telebot
 from telebot import types
 
 # Conexión con nuestro bot.
 
-TOKEN = 'tutoken'
-bot = telebot.TeleBot(TOKEN)
+TOKEN = '7310243413:AAGIzMU5AQYBElWdsVJoowjNpKjvcscAaCg'
+API_KEY = 'f4c43ee5cdca315ce01b3c1603a23d53'
 
+bot = telebot.TeleBot(TOKEN)
+BASE_URL = 'http://api.openweathermap.org/data/2.5/weather?'
+
+def get_weather(city_name):
+    complete_url = BASE_URL + "q=" + city_name + "&appid=" + API_KEY
+    response = requests.get(complete_url)
+    data = response.json()
+
+    if data["cod"] != 404:
+        main_data = data["main"]
+        weather_data = data["weather"][0]
+        temperature = main_data["temp"] - 273.15
+        description = weather_data["description"]
+        return f"Temperatura: {temperature:.2f}°C\n{description.capitalize()}"
+    else:
+        return 'Ciudad no encontrada'
+@bot.message_handler(commands=['clima'])
+def send_weather(message):
+    city_name = message.text.split()[1] if len(message.text.split()) > 1 else None
+    if city_name:
+        weather_info = get_weather(city_name)
+        bot.reply_to(message, weather_info)
+    else:
+        bot.reply_to(message, "Por favor, proporciona el nombre de la ciudad. Ejemplo: /clima Santiago")
 
 # Creación de comandos simples como '/start' y 'help'
 
@@ -19,8 +44,8 @@ def send_help(message):
     bot.reply_to(message, 'Puedes interactuar usando comandos. Por ahora, solo respondo a los comandos: /start y /help')
 
 
-#@bot.message_handler(func=lambda m: True)
-#def echo_all(message):
+# @bot.message_handler(func=lambda m: True)
+# def echo_all(message):
 #    bot.reply_to(message, message.text)
 
 
@@ -28,28 +53,31 @@ def send_help(message):
 def send_options(message):
     markup = types.InlineKeyboardMarkup(row_width=2)
 
-    #Creación de botones para el bot.
+    # Creación de botones para el bot.
     btn_si = types.InlineKeyboardButton('Si', callback_data='pizza_si')
     btn_no = types.InlineKeyboardButton('No', callback_data='pizza_no')
 
-    #Agregar botones.
+    # Agregar botones.
     markup.add(btn_si, btn_no)
 
-    #Enviar mensaje con los botones
+    # Enviar mensaje con los botones
     bot.send_message(message.chat.id, "¿Te gusta la pizza?", reply_markup=markup)
 
-#Crear un decorador
-@bot.callback_query_handler(func=lambda call:True)
+
+# Crear un decorador
+@bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == 'pizza_si':
         bot.answer_callback_query(call.id, 'A mi tambien !')
     elif call.data == 'pizza_no':
         bot.answer_callback_query(call.id, 'Bueno es cosa de gustos !')
 
+
 @bot.message_handler(commands=['foto'])
 def send_image(message):
-    img_url='https://www.devacademy.es/wp-content/uploads/2018/10/python-logo.png'
+    img_url = 'https://www.devacademy.es/wp-content/uploads/2018/10/python-logo.png'
     bot.send_photo(chat_id=message.chat.id, photo=img_url, caption='Aqui tienes tu imagen.')
 
+#Conectar bot con api externas
 if __name__ == "__main__":
     bot.polling(none_stop=True)
